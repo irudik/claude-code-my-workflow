@@ -41,11 +41,11 @@ Produce a thorough, actionable code review report. You do NOT edit files — you
 - [ ] `set.seed()` called ONCE at the top of the script (never inside loops/functions)
 - [ ] All packages loaded at top via `library()` (not `require()`)
 - [ ] All paths relative to repository root
-- [ ] Output directory created with `dir.create(..., recursive = TRUE)`
+- [ ] Output directories handled by Makefile (scripts should NOT call `dir.create()`)
 - [ ] No hardcoded absolute paths
 - [ ] Script runs cleanly from `Rscript` on a fresh clone
 
-**Flag:** Multiple `set.seed()` calls, `require()` usage, absolute paths, missing `dir.create()`.
+**Flag:** Multiple `set.seed()` calls, `require()` usage, absolute paths, scripts creating directories instead of relying on Makefile.
 
 ### 4. FUNCTION DESIGN & DOCUMENTATION
 - [ ] All functions use `snake_case` naming
@@ -59,7 +59,7 @@ Produce a thorough, actionable code review report. You do NOT edit files — you
 
 ### 5. DOMAIN CORRECTNESS
 <!-- Customize this section for your field -->
-- [ ] Estimator implementations match the formulas shown on slides
+- [ ] Estimator implementations match the formulas in the paper (`latex/manuscript.tex`)
 - [ ] Standard errors use the appropriate method
 - [ ] DGP specifications in simulations match the paper being replicated
 - [ ] Treatment effects are the correct estimand (e.g., ATT vs ATE)
@@ -70,7 +70,7 @@ Produce a thorough, actionable code review report. You do NOT edit files — you
 ### 6. FIGURE QUALITY
 - [ ] Consistent color palette (check your project's standard colors)
 - [ ] Custom theme applied to all plots
-- [ ] Transparent background for Beamer figures: `bg = "transparent"`
+- [ ] Transparent background where needed: `bg = "transparent"`
 - [ ] Explicit dimensions in `ggsave()`: `width`, `height` specified
 - [ ] Axis labels: sentence case, no abbreviations, units included
 - [ ] Legend position: bottom, readable at projection size
@@ -108,7 +108,8 @@ Produce a thorough, actionable code review report. You do NOT edit files — you
 - [ ] Consistent indentation (2 spaces, no tabs)
 - [ ] Lines under 100 characters where possible
 - [ ] Consistent spacing around operators
-- [ ] Pipe style consistent: either `%>%` or `|>`, not mixed
+- [ ] Pipe style native: `|>`
+- [ ] Assignment operator: `=`
 - [ ] No legacy R patterns (`T`/`F` instead of `TRUE`/`FALSE`)
 
 **Flag:** Inconsistent style, legacy patterns, mixed pipe styles.

@@ -17,9 +17,9 @@ Run an end-to-end data analysis in R: load, explore, analyze, and produce public
 ## Constraints
 
 - **Follow R code conventions** in `.claude/rules/r-code-conventions.md`
-- **Save all scripts** to `scripts/R/` with descriptive names
-- **Save all outputs** (figures, tables, RDS) to `output/`
-- **Use `saveRDS()`** for every computed object — Quarto slides may need them
+- **Save all scripts** to the appropriate `code/[task_group]/` directory
+- **Save all outputs** to `output/` (figures, tables, numbers subdirs)
+- **Use `saveRDS()`** for every computed object
 - **Use project theme** for all figures (check for custom theme in `.claude/rules/`)
 - **Run r-reviewer** on the generated script before presenting results
 
@@ -44,7 +44,7 @@ Generate diagnostic outputs:
 - **Time patterns:** If panel data, plot trends over time
 - **Group comparisons:** If treatment/control, compare pre-treatment means
 
-Save all diagnostic figures to `output/diagnostics/`.
+Save all diagnostic figures to `output/figures/`.
 
 ### Phase 3: Main Analysis
 
@@ -63,7 +63,7 @@ Based on the research question:
 
 **Figures:**
 - Use `ggplot2` with project theme
-- Set `bg = "transparent"` for Beamer compatibility
+- Set `bg = "transparent"` for LaTeX compatibility
 - Include proper axis labels (sentence case, units)
 - Export with explicit dimensions: `ggsave(width = X, height = Y)`
 - Save as both `.pdf` and `.png`
@@ -71,12 +71,12 @@ Based on the research question:
 ### Phase 5: Save and Review
 
 1. `saveRDS()` for all key objects (regression results, summary tables, processed data)
-2. Create `output/` subdirectories as needed with `dir.create(..., recursive = TRUE)`
+2. Rely on the Makefile for directory creation (do not call `dir.create()` in scripts)
 3. Run the r-reviewer agent on the generated script:
 
 ```
 Delegate to the r-reviewer agent:
-"Review the script at scripts/R/[script_name].R"
+"Review the script at code/[task_group]/[script_name].R"
 ```
 
 4. Address any Critical or High issues from the review.
@@ -103,7 +103,7 @@ library(modelsummary)
 
 set.seed(42)
 
-dir.create("output/analysis", recursive = TRUE, showWarnings = FALSE)
+# Note: output directories are created by the Makefile, not the script
 
 # 1. Data Loading ----
 # [Load and clean data]

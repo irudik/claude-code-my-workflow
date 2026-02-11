@@ -121,6 +121,38 @@ Launched 4 adversarial agents: guide accuracy, README first impression, CLAUDE.m
 - "Repo name confusion" — README correctly uses `claude-code-my-workflow`
 - "CLAUDE.md too terse" — by design; guide is the comprehensive reference
 
+## Continued: 2026-02-11 — Hardcoded Number Detector
+
+### Changes
+
+Implemented the planned tex-reviewer agent and supporting rule/agent updates:
+
+| File | Change |
+|------|--------|
+| `.claude/agents/tex-reviewer.md` | **NEW** — 159-line two-phase agent: detects hardcoded numbers in LaTeX prose, auto-fixes when source is unambiguous, escalates when ambiguous |
+| `.claude/rules/quality-gates.md` | Added 3 deduction rows to LaTeX table: hardcoded result (-15), computed result no macro (-5), stats/ missing from SOURCES (-5) |
+| `.claude/rules/verification-protocol.md` | Added steps 5-6 to LaTeX section: run tex-reviewer, verify stats/ files in Makefile SOURCES |
+| `.claude/agents/verifier.md` | Added stats file existence + SOURCES checks to .tex verification |
+| `.claude/rules/orchestrator-research.md` | Added checklist item for hardcoded computed results |
+
+### Dead Code Audit and Cleanup
+
+Full repo audit found 28 issues across 16 files. Cleaned:
+
+- `git rm` 52 tracked-but-deleted files (50 from restructure + 2 quarto agents)
+- Deleted orphaned `quarto-critic.md` and `quarto-fixer.md` agents
+- Removed stale `scripts/`, `Figures/`, `explorations/` paths from 6 rule files' frontmatter
+- Updated `data-analysis` and `review-r` skills: `scripts/R/` -> `code/`
+- Removed "Exploration Mode" section from `WORKFLOW_QUICK_REF.md`
+- Fixed `CLAUDE.md`: `README-new.md` -> `README.md`, removed `master_supporting_docs/`, added `output/` with subdirs
+- Updated `protect-files.sh`: `Bibliography_base.bib` -> `references.bib`
+- Cleaned `replication-protocol.md`: `LectureNN` -> `[project]`
+- Removed stale `.gitignore` entries: `/.quarto/`, `latex_figures`, `latex_tables`
+- Deleted `scripts/` folder (quality_score.py, sync_to_docs.sh — dead code)
+- Deleted orphaned `templates/exploration-readme.md` and `templates/archive-readme.md`
+
+**Remaining:** `settings.json` has 3 stale permissions (`sync_to_docs.sh`, `quarto render`) — protected by hook, needs manual edit.
+
 ## Status
 
 **COMPLETED** — All verification rounds passed. Ready to commit.

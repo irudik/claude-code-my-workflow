@@ -1,13 +1,15 @@
 ---
 paths:
-  - "scripts/**/*.R"
-  - "explorations/**"
-  - "Figures/**/*.R"
+  - "**/*.jl"
+  - "code/**/*.R"
+  - "code/**/*.jl"
+  - "code/**/Makefile"
+  - "latex/**/*.tex"
 ---
 
 # Research Project Orchestrator (Simplified)
 
-**For R scripts, simulations, and data analysis** -- use this simplified loop instead of the full multi-agent orchestrator.
+**For R/Julia scripts, simulations, and data analysis** -- use this simplified loop instead of the full multi-agent orchestrator.
 
 ## The Simple Loop
 
@@ -16,9 +18,12 @@ Plan approved → orchestrator activates
   │
   Step 1: IMPLEMENT — Execute plan steps
   │
-  Step 2: VERIFY — Run code, check outputs
-  │         R scripts: Rscript runs without error
-  │         Simulations: set.seed reproducibility
+  Step 2: VERIFY — Run `make -n` to check staleness; build stale targets
+  │         If Makefile exists: `make -C code/[dir] [target]` or `make -C latex`
+  │         Otherwise: `Rscript` / `julia` / `pdflatex` directly
+  │         R scripts: runs without error, outputs created
+  │         Julia scripts: runs without error, CSV/JLD2 created
+  │         Simulations: set.seed / Random.seed! reproducibility
   │         Plots: PDF/PNG created, correct format
   │         If verification fails → fix → re-verify
   │
@@ -33,10 +38,12 @@ Plan approved → orchestrator activates
 
 ## Verification Checklist
 
-- [ ] Script runs without errors
-- [ ] All packages loaded at top
+- [ ] `make -n` shows no stale targets (or targets rebuilt successfully)
+- [ ] Script runs without errors (R and/or Julia)
+- [ ] All packages loaded at top (R: `library()`, Julia: top-level `using`)
 - [ ] No hardcoded absolute paths
-- [ ] `set.seed()` once at top if stochastic
+- [ ] `set.seed()` / `Random.seed!()` once at top if stochastic
 - [ ] Output files created at expected paths
 - [ ] Tolerance checks pass (if applicable)
+- [ ] No hardcoded computed results in manuscript prose (tex-reviewer)
 - [ ] Quality score >= 80

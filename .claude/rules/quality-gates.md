@@ -1,8 +1,9 @@
 ---
 paths:
-  - "Slides/**/*.tex"
-  - "Quarto/**/*.qmd"
-  - "scripts/**/*.R"
+  - "latex/**/*.tex"
+  - "**/*.jl"
+  - "code/**"
+  - "code/**/Makefile"
 ---
 
 # Quality Gates & Scoring Rubrics
@@ -13,18 +14,18 @@ paths:
 - **90/100 = PR** -- ready for deployment
 - **95/100 = Excellence** -- aspirational
 
-## Quarto Slides (.qmd)
+## LaTeX Manuscript (.tex)
 
 | Severity | Issue | Deduction |
 |----------|-------|-----------|
-| Critical | Compilation failure | -100 |
-| Critical | Equation overflow | -20 |
-| Critical | Broken citation | -15 |
+| Critical | pdflatex compilation failure | -100 |
+| Critical | Undefined citation | -15 |
+| Critical | Overfull hbox > 10pt | -10 |
 | Critical | Typo in equation | -10 |
-| Major | Text overflow | -5 |
-| Major | TikZ label overlap | -5 |
-| Major | Notation inconsistency | -3 |
-| Minor | Font size reduction | -1 per slide |
+| Major | Missing bibliography entries | -5 |
+| Critical | Hardcoded result (macro exists but unused) | -15 |
+| Major | Likely computed result with no macro | -5 |
+| Major | output/numbers/ file missing from Makefile dependencies | -5 |
 | Minor | Long lines (>100 chars) | -1 (EXCEPT documented math formulas) |
 
 ## R Scripts (.R)
@@ -37,13 +38,29 @@ paths:
 | Major | Missing set.seed() | -10 |
 | Major | Missing figure generation | -5 |
 
-## Beamer Slides (.tex)
+## Julia Scripts (.jl)
 
 | Severity | Issue | Deduction |
 |----------|-------|-----------|
-| Critical | XeLaTeX compilation failure | -100 |
-| Critical | Undefined citation | -15 |
-| Critical | Overfull hbox > 10pt | -10 |
+| Critical | Runtime errors | -100 |
+| Critical | Domain-specific bugs | -30 |
+| Critical | Hardcoded absolute paths | -20 |
+| Major | Type instability in hot loops | -15 |
+| Major | Missing `Random.seed!()` | -10 |
+| Major | Abstract-typed struct fields | -5 |
+| Major | Missing persistence (no CSV/JLD2 export) | -5 |
+| Minor | Unfused broadcasts (`.+` instead of `@.`) | -2 |
+| Minor | Globals captured in loops without `let` | -2 |
+
+## Makefile
+
+| Severity | Issue | Deduction |
+|----------|-------|-----------|
+| Critical | Circular dependencies | -100 |
+| Critical | Missing prerequisites (stale builds) | -30 |
+| Major | Missing `.PHONY` on non-file targets | -10 |
+| Major | Absolute paths | -10 |
+| Major | Directories not using order-only prerequisites | -5 |
 
 ## Enforcement
 

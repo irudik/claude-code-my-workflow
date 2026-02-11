@@ -1,10 +1,8 @@
-# My Claude Code Setup
+# My Claude Code Setup (Make + R/Julia)
 
-> **Work in progress.** This is not meant to be a polished guide for everyone. It's mostly a summary of how I've been using Claude Code for academic work — creating lecture slides, writing R scripts, managing Beamer-to-Quarto workflows, and so on. I keep learning new things, and as I do, I keep updating these files. This is just a way for me to share what I've figured out with friends and colleagues.
+> **Work in progress.** This is a summary of how I use Claude Code for computational research — running analysis pipelines with Make, writing R and Julia scripts, and managing build dependencies. I keep updating these files as I learn new things.
 
-**Live site:** [psantanna.com/claude-code-my-workflow](https://psantanna.com/claude-code-my-workflow/)
-
-A ready-to-fork starter kit for academics using [Claude Code](https://code.claude.com/docs/en/overview) with **LaTeX/Beamer + R + Quarto**. You describe what you want; Claude plans the approach, runs specialized agents, fixes issues, verifies quality, and presents results — like a contractor who handles the entire job. Extracted from a production PhD course (6 lectures, 800+ slides).
+A ready-to-fork starter kit for researchers using [Claude Code](https://code.claude.com/docs/en/overview) with **Make + R + Julia** build systems. You describe what you want; Claude plans the approach, implements it, builds via Make, runs specialized review agents, fixes issues, and presents results — like a contractor who handles the entire job.
 
 ---
 
@@ -26,47 +24,91 @@ Replace `YOUR_USERNAME` with your GitHub username.
 claude
 ```
 
-**Using VS Code?** Open the Claude Code panel instead. Everything works the same — see the [full guide](https://psantanna.com/claude-code-my-workflow/workflow-guide.html#sec-setup) for details.
+**Using VS Code?** Open the Claude Code panel instead. Everything works the same.
 
 Then paste the following, filling in your project details:
 
-> I am starting to work on **[PROJECT NAME]** in this repo. **[Describe your project in 2–3 sentences — what you're building, who it's for, what tools you use.]**
+> I am starting to work on **[PROJECT NAME]** in this repo. **[Describe your project in 2–3 sentences — what you're building, what data you use, what your pipeline stages are (e.g., data cleaning, estimation, figures).]**
 >
-> I want our collaboration to be structured, precise, and rigorous. When creating visuals, everything must be polished and publication-ready.
+> I want our collaboration to be structured, precise, and rigorous. Code should be reproducible and build-system driven.
 >
-> I've set up the Claude Code academic workflow (forked from `pedrohcgs/claude-code-my-workflow`). The configuration files are already in this repo. Please read them, understand the workflow, and then **update all configuration files to fit my project** — fill in placeholders in `CLAUDE.md`, adjust rules if needed, and propose any customizations specific to my use case.
+> I've set up the Claude Code academic workflow (forked from `pedrohcgs/claude-code-my-workflow`). The configuration files are already in this repo. Please read them, understand the workflow, and then **update all configuration files to fit my project** — fill in placeholders in `CLAUDE.md`, set up the `code/` directory structure with sub-Makefiles for my pipeline stages, and propose any customizations specific to my use case.
 >
 > After that, use the plan-first workflow for all non-trivial tasks. Once I approve a plan, switch to contractor mode — coordinate everything autonomously and only come back to me when there's ambiguity or a decision to make.
 >
 > Enter plan mode and start by adapting the workflow configuration for this project.
 
-**What this does:** Claude reads all the configuration files, fills in your project name, institution, and preferences, then enters contractor mode — planning, implementing, reviewing, and verifying autonomously. You approve the plan and Claude handles the rest.
-
-**Prefer to configure manually?** See the [full guide](https://psantanna.com/claude-code-my-workflow/workflow-guide.html#sec-setup) for step-by-step manual setup instructions.
+**What this does:** Claude reads all the configuration files, sets up your `code/` directory with sub-Makefiles for each pipeline stage, fills in your project details, then enters contractor mode — planning, implementing, reviewing, and verifying autonomously.
 
 ---
 
 ## How It Works
 
+### Make as the Backbone
+
+A root Makefile delegates to `code/` (analysis pipeline) and `latex/` (manuscript):
+
+```
+my-project/
+├── Makefile              # Root — delegates to code/ and latex/
+├── code/
+│   ├── Makefile          # Delegates to sub-Makefiles
+│   ├── data_prep/
+│   │   ├── Makefile      # Targets for cleaning raw data
+│   │   ├── clean.R
+│   │   └── merge.R
+│   ├── estimation/
+│   │   ├── Makefile      # Targets for running models
+│   │   ├── model.R
+│   │   └── bootstrap.R
+│   ├── simulation/
+│   │   ├── Makefile      # Targets for trade model simulation
+│   │   ├── simulate_trade.jl
+│   │   └── process_results.jl
+│   ├── tables/
+│   │   ├── Makefile      # Targets for regression tables
+│   │   └── reg_tables.R
+│   └── figures/
+│       ├── Makefile      # Targets for generating plots
+│       └── main_figures.R
+└── latex/
+    ├── Makefile          # pdflatex 3-pass build
+    ├── manuscript.tex    # Main paper
+    ├── slides.tex        # Presentation slides
+    ├── latex_extras/     # Preamble files
+    └── references/       # .bib and .bst files
+```
+
+- `make` from project root builds everything (code first, then latex)
+- `make -n` shows what would be rebuilt (dry-run)
+- `make -C code` rebuilds all code targets
+- `make -C code/estimation all` rebuilds one pipeline stage
+- `make -C latex` compiles the manuscript
+- Scripts never create directories — Makefiles own that via order-only prerequisites
+
 ### Contractor Mode
 
-You describe a task. Claude plans the approach, implements it, runs specialized review agents, fixes issues, re-verifies, and scores against quality gates — all autonomously. You see a summary when the work meets quality standards. Say "just do it" and it auto-commits too.
+You describe a task. Claude:
+1. **Plans** the approach (enter plan mode, save to disk)
+2. **Implements** the code
+3. **Verifies** via `make -n` then `make` — builds stale targets (including `make -C latex` for the manuscript), checks exit codes
+4. **Reviews** with specialized agents (r-reviewer, julia-reviewer, verifier)
+5. **Fixes** issues found by reviewers
+6. **Scores** against quality gates
+
+If the score meets threshold, Claude presents a summary. Say "just do it" and it auto-commits too.
 
 ### Specialized Agents
 
-Instead of one general-purpose reviewer, 10 focused agents each check one dimension:
+Focused agents each check one dimension:
 
-- **proofreader** — grammar/typos
-- **slide-auditor** — visual layout
-- **pedagogy-reviewer** — teaching quality
-- **r-reviewer** — R code quality
-- **domain-reviewer** — field-specific correctness (template — customize for your field)
+| Agent | What It Checks |
+|-------|---------------|
+| `r-reviewer` | R code quality, reproducibility, domain correctness |
+| `julia-reviewer` | Julia code quality, type stability, performance |
+| `verifier` | End-to-end build verification, orphaned script detection |
 
-Each is better at its narrow task than a generalist would be. The `/slide-excellence` skill runs them all in parallel.
-
-### Adversarial QA
-
-Two agents work in opposition: the **critic** reads both Beamer and Quarto and produces harsh findings. The **fixer** implements exactly what the critic found. They loop until the critic says "APPROVED" (or 5 rounds max). This catches errors that single-pass review misses.
+The verifier runs an **orphaned script check**: every `.R` and `.jl` file under `code/` must appear as a prerequisite in some Makefile. Scripts with no Makefile target get flagged.
 
 ### Quality Gates
 
@@ -75,110 +117,42 @@ Every file gets a score (0–100). Scores below threshold block the action:
 - **90** — PR threshold
 - **95** — excellence (aspirational)
 
----
-
-## The Guide
-
-For a comprehensive walkthrough, read the **[full guide](https://psantanna.com/claude-code-my-workflow/workflow-guide.html)** (or see the [source](guide/workflow-guide.qmd)).
-
-It covers:
-1. **Why This Workflow Exists** — the problem and the vision
-2. **Getting Started** — fork, paste one prompt, and Claude sets up the rest
-3. **The System in Action** — specialized agents, adversarial QA, quality scoring
-4. **The Building Blocks** — CLAUDE.md, rules, skills, agents, hooks, memory
-5. **Workflow Patterns** — lecture creation, translation, replication, multi-agent review, research exploration
-6. **Customizing for Your Domain** — creating your own reviewers and knowledge bases
+Rubrics cover R scripts, Julia scripts, Makefiles, and LaTeX manuscripts. See `.claude/rules/quality-gates.md` for the full deduction table.
 
 ---
 
 ## What's Included
 
 <details>
-<summary><strong>10 agents, 19 skills, 17 rules, 4 hooks</strong> (click to expand)</summary>
+<summary><strong>Agents, skills, and rules</strong> (click to expand)</summary>
 
 ### Agents (`.claude/agents/`)
 
 | Agent | What It Does |
 |-------|-------------|
-| `proofreader` | Grammar, typos, overflow, consistency review |
-| `slide-auditor` | Visual layout audit (overflow, font consistency, spacing) |
-| `pedagogy-reviewer` | 13-pattern pedagogical review (narrative arc, notation density, pacing) |
 | `r-reviewer` | R code quality, reproducibility, and domain correctness |
-| `tikz-reviewer` | Merciless TikZ diagram visual critique |
-| `beamer-translator` | Beamer-to-Quarto translation specialist |
-| `quarto-critic` | Adversarial QA comparing Quarto against Beamer benchmark |
-| `quarto-fixer` | Implements fixes from the critic agent |
-| `verifier` | End-to-end task completion verification |
-| `domain-reviewer` | **Template** for your field-specific substance reviewer |
+| `julia-reviewer` | Julia code quality, type stability, and performance |
+| `verifier` | End-to-end build verification with orphaned script check |
 
-### Skills (`.claude/skills/`)
+### Key Skills (`.claude/skills/`)
 
 | Skill | What It Does |
 |-------|-------------|
-| `/compile-latex` | 3-pass XeLaTeX compilation with bibtex |
-| `/deploy` | Render Quarto + sync to GitHub Pages |
-| `/extract-tikz` | TikZ diagrams to PDF to SVG pipeline |
-| `/proofread` | Launch proofreader on a file |
-| `/visual-audit` | Launch slide-auditor on a file |
-| `/pedagogy-review` | Launch pedagogy-reviewer on a file |
-| `/review-r` | Launch R code reviewer |
-| `/qa-quarto` | Adversarial critic-fixer loop (max 5 rounds) |
-| `/slide-excellence` | Combined multi-agent review |
-| `/translate-to-quarto` | Full 11-phase Beamer-to-Quarto translation |
-| `/validate-bib` | Cross-reference citations against bibliography |
-| `/devils-advocate` | Challenge design decisions before committing |
-| `/create-lecture` | Full lecture creation workflow |
-| `/commit` | Stage, commit, create PR, and merge to main |
-| `/lit-review` | Literature search, synthesis, and gap identification |
-| `/research-ideation` | Generate research questions and empirical strategies |
-| `/interview-me` | Interactive interview to formalize a research idea |
-| `/review-paper` | Manuscript review: structure, econometrics, referee objections |
-| `/data-analysis` | End-to-end R analysis with publication-ready output |
+| `/commit` | Stage, commit, PR, merge (with `make -n` staleness warning) |
+| `/data-analysis` | End-to-end R analysis workflow |
 
-### Research Workflow
-
-| Feature | What It Does |
-|---------|-------------|
-| Exploration folder | Structured `explorations/` sandbox with graduate/archive lifecycle |
-| Fast-track workflow | 60/100 quality threshold for rapid prototyping |
-| Simplified orchestrator | implement → verify → score → done (no multi-round reviews) |
-| Enhanced session logging | Structured tables for changes, decisions, verification |
-| Merge-only reporting | Quality reports at merge time only |
-| Math line-length exception | Long lines acceptable for documented formulas |
-| Workflow quick reference | One-page cheat sheet at `.claude/WORKFLOW_QUICK_REF.md` |
-
-### Rules (`.claude/rules/`)
-
-Rules use path-scoped loading: **always-on** rules load every session (~100 lines total); **path-scoped** rules load only when Claude works on matching files. Claude follows ~150 instructions reliably, so less is more.
-
-**Always-on** (no `paths:` frontmatter — load every session):
+### Key Rules (`.claude/rules/`)
 
 | Rule | What It Enforces |
 |------|-----------------|
-| `plan-first-workflow` | Plan mode for non-trivial tasks + context preservation |
-| `orchestrator-protocol` | Contractor mode: implement → verify → review → fix → score |
-| `session-logging` | Three logging triggers: post-plan, incremental, end-of-session |
-
-**Path-scoped** (load only when working on matching files):
-
-| Rule | Triggers On | What It Enforces |
-|------|------------|-----------------|
-| `verification-protocol` | `.tex`, `.qmd`, `docs/` | Task completion checklist |
-| `single-source-of-truth` | `Figures/`, `.tex`, `.qmd` | No content duplication; Beamer is authoritative |
-| `quality-gates` | `.tex`, `.qmd`, `*.R` | 80/90/95 scoring + tolerance thresholds |
-| `r-code-conventions` | `*.R` | R coding standards + math line-length exception |
-| `tikz-visual-quality` | `.tex` | TikZ diagram visual standards |
-| `beamer-quarto-sync` | `.tex`, `.qmd` | Auto-sync Beamer edits to Quarto |
-| `pdf-processing` | `master_supporting_docs/` | Safe large PDF handling |
-| `proofreading-protocol` | `.tex`, `.qmd`, `quality_reports/` | Propose-first, then apply with approval |
-| `no-pause-beamer` | `.tex` | No overlay commands in Beamer |
-| `replication-protocol` | `*.R` | Replicate original results before extending |
-| `knowledge-base-template` | `.tex`, `.qmd`, `*.R` | Notation/application registry template |
-| `orchestrator-research` | `*.R`, `explorations/` | Simple orchestrator for research (no multi-round reviews) |
-| `exploration-folder-protocol` | `explorations/` | Structured sandbox for experimental work |
-| `exploration-fast-track` | `explorations/` | Lightweight exploration workflow (60/100 threshold) |
-
-**Templates** (`templates/`) — reference formats for session logs, quality reports, and exploration READMEs. Not auto-loaded.
+| `makefile-conventions` | Standard Make patterns: `.PHONY`, order-only prereqs, pattern rules, joint production |
+| `r-code-conventions` | R coding standards, Makefile-based directory creation |
+| `julia-code-conventions` | Julia coding standards, Makefile-based directory creation |
+| `quality-gates` | 80/90/95 scoring for R, Julia, Makefiles, and LaTeX |
+| `verification-protocol` | Make-first verification, then file-specific checks |
+| `orchestrator-protocol` | Contractor mode: implement, verify via Make, review, fix, score |
+| `orchestrator-research` | Simplified loop for R/Julia scripts |
+| `plan-first-workflow` | Plan mode for non-trivial tasks |
 
 </details>
 
@@ -189,41 +163,101 @@ Rules use path-scoped loading: **always-on** rules load every session (~100 line
 | Tool | Required For | Install |
 |------|-------------|---------|
 | [Claude Code](https://code.claude.com/docs/en/overview) | Everything | `npm install -g @anthropic-ai/claude-code` |
-| XeLaTeX | LaTeX compilation | [TeX Live](https://tug.org/texlive/) or [MacTeX](https://tug.org/mactex/) |
-| [Quarto](https://quarto.org) | Web slides | [quarto.org/docs/get-started](https://quarto.org/docs/get-started/) |
-| R | Figures & analysis | [r-project.org](https://www.r-project.org/) |
-| pdf2svg | TikZ to SVG | `brew install pdf2svg` (macOS) |
+| [GNU Make](https://www.gnu.org/software/make/) | Build system | Pre-installed on macOS/Linux |
+| R | Data analysis, figures | [r-project.org](https://www.r-project.org/) |
+| Julia | Computation, simulation | [julialang.org](https://julialang.org/downloads/) |
+| pdflatex | Manuscript compilation | Included with TeX Live / MacTeX |
 | [gh CLI](https://cli.github.com/) | PR workflow | `brew install gh` (macOS) |
 
 Not all tools are needed — install only what your project uses. Claude Code is the only hard requirement.
 
 ---
 
+## Dynamic Numbers in LaTeX
+
+The pipeline keeps computed results out of your `.tex` source by writing `\newcommand` definitions to `output/numbers/` and resolving them at compile time via `TEXINPUTS`.
+
+### How it works
+
+1. **Code generates a `.txt` file** with a `\newcommand`:
+
+   **R:**
+   ```r
+   writeLines("\\newcommand{\\revenueEstimate}{4.72}",
+              file.path("output", "numbers", "revenue_estimate.txt"))
+   ```
+
+   **Julia:**
+   ```julia
+   open(joinpath("output", "numbers", "revenue_estimate.txt"), "w") do io
+       println(io, "\\newcommand{\\revenueEstimate}{4.72}")
+   end
+   ```
+
+2. **The manuscript inputs the file** (plain filename — no path prefix needed):
+   ```latex
+   \input{revenue_estimate.txt}
+   A U.S. carbon tariff raises \$\revenueEstimate\ billion in revenue.
+   ```
+
+3. **`TEXINPUTS` resolves the path.** The `latex/Makefile` exports:
+   ```make
+   export TEXINPUTS := .:./latex_extras/:../output/numbers/:../output/tables/:../output/figures/:
+   ```
+   So `pdflatex` finds `revenue_estimate.txt` in `../output/numbers/` without your `.tex` files needing `../output/` prefixes.
+
+### Adding a new dynamic number
+
+1. Add the write call to your R or Julia script
+2. Add the `.txt` file as a prerequisite in the relevant `code/` Makefile
+3. Add `\input{filename.txt}` in the manuscript preamble (or wherever the macro is first used)
+4. Use the macro (`\revenueEstimate`) in prose
+5. Run `make` — the code pipeline writes the file, then `pdflatex` picks it up
+
+The same `TEXINPUTS` mechanism resolves figures (`output/figures/`) and tables (`output/tables/`), so `\includegraphics{plot.pdf}` and `\input{reg_table.tex}` also work without path prefixes.
+
+---
+
 ## Adapting for Your Field
 
-1. **Fill in the knowledge base** (`.claude/rules/knowledge-base-template.md`) with your notation, applications, and design principles
-2. **Customize the domain reviewer** (`.claude/agents/domain-reviewer.md`) with review lenses specific to your field
-3. **Update the color palette** in your Quarto theme SCSS file — change the color variables at the top
-4. **Add field-specific R pitfalls** to `.claude/rules/r-code-conventions.md`
-5. **Fill in the lecture mapping** in `.claude/rules/beamer-quarto-sync.md`
-6. **Customize the workflow quick reference** (`.claude/WORKFLOW_QUICK_REF.md`) with your non-negotiables and preferences
-7. **Set up the exploration folder** (`explorations/`) for experimental work
+1. **Add field-specific pitfalls** to `.claude/rules/r-code-conventions.md` and `.claude/rules/julia-code-conventions.md`
+2. **Adjust tolerance thresholds** in `.claude/rules/quality-gates.md` for your domain's precision requirements
+3. **Set up the `code/` directory** with sub-Makefiles matching your pipeline stages
 
 ---
 
-## Additional Resources
+## Project Structure
 
-- [Claude Code Documentation](https://code.claude.com/docs/en/overview)
-- [Writing a Good CLAUDE.md](https://code.claude.com/docs/en/memory) — official guidance on project memory
+```
+my-project/
+├── CLAUDE.md                    # Project config (loaded every session)
+├── Makefile                     # Root — delegates to code/ and latex/
+├── .claude/                     # Rules, skills, agents, hooks
+├── code/
+│   ├── Makefile                 # Delegates to sub-Makefiles
+│   ├── [task_group_a]/          # e.g., data cleaning (R)
+│   │   ├── Makefile
+│   │   └── *.R or *.jl
+│   ├── [task_group_b]/          # e.g., simulation (Julia)
+│   │   ├── Makefile
+│   │   └── *.R or *.jl
+│   └── [task_group_c]/          # e.g., figures (R)
+│       ├── Makefile
+│       └── *.R or *.jl
+├── latex/
+│   ├── Makefile                 # pdflatex 3-pass build
+│   ├── manuscript.tex           # Main paper
+│   ├── slides.tex               # Presentation slides
+│   ├── latex_extras/            # packages.tex, custom_commands.tex, etc.
+│   └── references/              # references.bib, econ.bst
+├── quality_reports/             # Plans, session logs, merge reports
+└── templates/                   # Session log, quality report templates
+```
 
----
-
-## Origin
-
-This infrastructure was extracted from **Econ 730: Causal Panel Data** at Emory University, developed by Pedro Sant'Anna using Claude Code over 6+ sessions. The course produced 6 complete PhD lecture decks with 800+ slides, interactive Quarto versions with plotly charts, and full R replication packages — all managed through this multi-agent workflow.
+Each `code/[task_group]/Makefile` follows the conventions in `.claude/rules/makefile-conventions.md`: `all` and `clean` targets, order-only prerequisites for directories, pattern rules for parametric outputs, and `.PRECIOUS` for expensive intermediates.
 
 ---
 
 ## License
 
-MIT License. Use freely for teaching, research, or any academic purpose.
+MIT License. Use freely for research or any academic purpose.

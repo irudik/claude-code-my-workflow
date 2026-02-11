@@ -9,7 +9,9 @@ Plan approved → orchestrator activates
   │
   Step 1: IMPLEMENT — Execute plan steps
   │
-  Step 2: VERIFY — Compile, render, check outputs
+  Step 2: VERIFY — Run `make -n` to check staleness; build stale targets
+  │         If Makefile exists: `make -C code/[dir] [target]` or `make -C latex`
+  │         Otherwise: compile/render/run directly
   │         If verification fails → fix → re-verify
   │
   Step 3: REVIEW — Run review agents (by file type)

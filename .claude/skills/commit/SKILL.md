@@ -20,6 +20,8 @@ git diff --stat
 git log --oneline -5
 ```
 
+**Staleness check:** If a root Makefile exists, run `make -n` to check for stale targets. If stale targets exist, warn the user before proceeding (soft gate — warn, don't block).
+
 2. **Create a branch** from the current state:
 
 ```bash

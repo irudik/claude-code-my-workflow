@@ -1,6 +1,20 @@
-# ==============================================================================
-# .gitignore for Academic Claude Code Projects
-# ==============================================================================
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE / Editor
+.vscode/
+.idea/
+settings.json
+*.swp
+*.swo
+*~
+
+# AI coding assistants — local state
+**/.claude/settings.local.json
+.claude/state/
+.codex/
+.gemini/
 
 # LaTeX build artifacts
 *.aux
@@ -26,30 +40,37 @@ __pycache__/
 *.pyc
 *.pyo
 
-# R
+# R / RStudio
 .Rproj.user/
 .Rhistory
+.Rapp.history
 .RData
 .Rdata
+.httr-oauth
+renv/library*
+rsconnect/
 
-# OS files
-.DS_Store
-Thumbs.db
+# R package build artifacts
+*-Ex.R
+/*.tar.gz
+/*.Rcheck/
+vignettes/*.html
+vignettes/*.pdf
 
-# Claude Code local files (not shared across machines)
-.claude/settings.local.json
-.claude/state/
+# R Markdown / knitr
+/*_cache/
+/cache/
+*.utf8.md
+*.knit.md
 
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
+# MATLAB
+*.asv
+*.mat
 
-# Quarto rendering artifacts
-/.quarto/
-
-# Output artifacts — uncomment lines below based on your preference
+# Data / Output
+data
+output
+*.csv
+# Output artifacts (uncomment as needed)
 # *.rds
 # output/**/*.rds

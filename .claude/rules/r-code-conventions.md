@@ -1,8 +1,7 @@
 ---
 paths:
   - "**/*.R"
-  - "Figures/**/*.R"
-  - "scripts/**/*.R"
+  - "code/**/*.R"
 ---
 
 # R Code Standards
@@ -16,7 +15,7 @@ paths:
 - `set.seed()` called ONCE at top (YYYYMMDD format)
 - All packages loaded at top via `library()` (not `require()`)
 - All paths relative to repository root
-- `dir.create(..., recursive = TRUE)` for output directories
+- Rely on the Makefile to make directories
 
 ## 2. Function Design
 
@@ -28,42 +27,84 @@ paths:
 ## 3. Domain Correctness
 
 <!-- Customize for your field's known pitfalls -->
-- Verify estimator implementations match slide formulas
+- Verify estimator implementations match paper formulas (`latex/manuscript.tex`)
 - Check known package bugs (document below in Common Pitfalls)
 
 ## 4. Visual Identity
 
 ```r
 # --- Your institutional palette ---
-primary_blue  <- "#012169"
-primary_gold  <- "#f2a900"
-accent_gray   <- "#525252"
-positive_green <- "#15803d"
-negative_red  <- "#b91c1c"
+plot_blue = "#4575b4"
+plot_mid = "#ffffdf"
+plot_red = "#d73027"
+plot_purple = "#c51b7d"
+plot_green = "#3a7813"
 ```
 
-### Custom Theme
+### Fonts
+```
+sysfonts::font_add_google("Lato")
+sysfonts::font_add_google("Fira Sans")
+```
+
+### Custom Themes
 ```r
-theme_custom <- function(base_size = 14) {
-  theme_minimal(base_size = base_size) +
-    theme(
-      plot.title = element_text(face = "bold", color = primary_blue),
-      legend.position = "bottom"
-    )
-}
+
+# Regular plots
+main_theme <- 
+  theme_classic() +
+  theme(
+    legend.position = "none",
+    title = element_text(size = 24),
+    text = element_text(family = font_choice),
+    axis.text.x = element_text(size = 30), axis.text.y = element_text(size = 30),
+    axis.title.x = element_text(size = 30), axis.title.y = element_text(size = 30),
+    panel.grid.minor.x = element_blank(), panel.grid.major.y = element_blank(),
+    panel.grid.minor.y = element_blank(), panel.grid.major.x = element_blank(),
+    axis.line = element_line(colour = "black"), axis.ticks = element_line(colour = "black"),
+    plot.background = element_rect(fill = "#ffffff")
+  ) 
+
+# Maps
+map_theme <- 
+  theme_void() +
+  theme(
+    legend.position = "bottom",
+    legend.key.height = unit(.35, "cm"),
+    legend.key.width = unit(.6, "cm"),
+    legend.text = element_text(size = 8),
+    text = element_text(family = "Lato"),
+  ) 
 ```
 
-### Figure Dimensions for Beamer
+### Figure Dimensions (for slides template)
 ```r
-ggsave(filepath, width = 12, height = 5, bg = "transparent")
+# Maps
+ggsave(filepath, width = 8, height = 4, bg = "transparent")
+# Figures
+ggsave(filepath, width = 8, height = 8, bg = "transparent")
 ```
 
-## 5. RDS Data Pattern
+## 5. Output Paths
+
+All code outputs go to canonical subdirectories under `output/`:
+
+```r
+# Figures
+ggsave(file.path("output", "figures", "my_plot.pdf"), width = 8, height = 8, bg = "transparent")
+
+# Tables / RDS
+saveRDS(result, file.path("output", "tables", "my_results.rds"))
+
+# Inline numbers for manuscript (\newcommand .txt files)
+writeLines("\\newcommand{\\myEstimate}{2.31}",
+           file.path("output", "numbers", "my_estimate.txt"))
+```
 
 **Heavy computations saved as RDS; slide rendering loads pre-computed data.**
 
 ```r
-saveRDS(result, file.path(out_dir, "descriptive_name.rds"))
+saveRDS(result, file.path("output", "tables", "descriptive_name.rds"))
 ```
 
 ## 6. Common Pitfalls
@@ -76,9 +117,9 @@ saveRDS(result, file.path(out_dir, "descriptive_name.rds"))
 
 ## 7. Line Length & Mathematical Exceptions
 
-**Standard:** Keep lines <= 100 characters.
+**Standard:** Keep lines <= 120 characters.
 
-**Exception: Mathematical Formulas** -- lines may exceed 100 chars **if and only if:**
+**Exception: Mathematical Formulas** -- lines may exceed 120 chars **if and only if:**
 
 1. Breaking the line would harm readability of the math (influence functions, matrix ops, finite-difference approximations, formula implementations matching paper equations)
 2. An inline comment explains the mathematical operation:
